@@ -1,0 +1,7 @@
+#pygame
+pygame==2.6.1
+
+#pydantic
+annotated-types==0.7.0
+pydantic==2.10.5
+pydantic-core==2.27.2
