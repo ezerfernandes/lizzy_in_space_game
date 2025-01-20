@@ -10,7 +10,7 @@ from pydantic import BaseModel, Field
 pygame.init()
 
 
-SCREEN_WIDTH, SCREEN_HEIGHT = 800, 600
+SCREEN_WIDTH, SCREEN_HEIGHT = 1280, 720
 FPS = 60
 PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
 
@@ -54,9 +54,7 @@ HEIGHT_START = {
 
 class Character(BaseModel):
     sprite_sheet: SpriteSheet = Field(default=SpriteSheet("characters/test.png"))
-    pos: tuple[int, int] = Field(default=(100, 100))
-    x: int = Field(default=100)
-    y: int = Field(default=100)
+    pos: tuple[int, int]
     direction: Direction = Field(default="front")
     speed: int = Field(default=5)
     front_frames: list[pygame.Surface] = Field(default_factory=list)
@@ -68,12 +66,28 @@ class Character(BaseModel):
     animation_timer: float = Field(default=0.)
     animation_speed: float = Field(default=200.)
 
+    @property
+    def x(self) -> int:
+        return self.pos[0]
+    @x.setter
+    def x(self, value: int) -> None:
+        self.pos = (value, self.pos[1])
+
+    @property
+    def y(self) -> int:
+        return self.pos[1]
+    @y.setter
+    def y(self, value: int) -> None:
+        self.pos = (self.pos[0], value)
+
     class Config:
         arbitrary_types_allowed = True
 
-    def __init__(self, *kwargs) -> None:
-        super().__init__()
-        self.pos = (SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2)
+    def __init__(self, **kwargs) -> None:
+        if "pos" not in kwargs:
+            kwargs["pos"] = (SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2)
+
+        super().__init__(**kwargs)
         self.front_frames: list[pygame.Surface] = [
             self.sprite_sheet.get_image(
                 0,
@@ -378,7 +392,7 @@ class SceneManager:
 def main():
     clock = pygame.time.Clock()
     #manager = SceneManager()
-    character = Character()
+    character = Character(pos=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2))
 
     running = True
     while running:
