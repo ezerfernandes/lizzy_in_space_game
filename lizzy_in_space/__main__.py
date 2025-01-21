@@ -7,6 +7,7 @@ from pydantic import BaseModel, Field
 
 from lizzy_in_space.models import Direction
 from lizzy_in_space.utils.sprites import SpriteSheet
+from lizzy_in_space.items.evolonline import get_evolonline_items
 
 pygame.init()
 
@@ -30,7 +31,7 @@ HEIGHT_START = {
 }
 
 class Character(BaseModel):
-    sprite_sheet: SpriteSheet = Field(default=SpriteSheet("characters/test.png", PROJECT_ROOT))
+    sprite_sheet: SpriteSheet = Field(default=SpriteSheet("characters/test.png"))
     pos: tuple[int, int]
     direction: Direction = Field(default="front")
     speed: int = Field(default=5)
@@ -139,38 +140,12 @@ class Character(BaseModel):
 
 
 
-items_spritesheet = SpriteSheet("items/evolonline.png", PROJECT_ROOT)
-items: dict[str, pygame.Surface] = items_spritesheet.get_named_images(
-    32,
-    32,
-    [
-        "cotton",
-        "peaches",
-        "apple",
-        "cake",
-        "brown_book",
-        "thing",
-        "leaf",
-        "tusks",
-        "golden_leaves",
-        "purple_book",
-        "dontknow",
-        "turtle_shell",
-        "water_drops",
-        "flask",
-        "ball",
-        "potion1",
-        "potion2",
-        "potion3",
-        "potion4",
-        "potion5",
-    ]
-)
+items = get_evolonline_items()
 
 def main() -> None:
     clock = pygame.time.Clock()
     character = Character(pos=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2))
-    book1 = items["brown_book"]
+    book1 = items["old book"]
 
     running = True
     while running:
@@ -185,6 +160,8 @@ def main() -> None:
         screen.fill((50, 150, 50))
 
         screen.blit(book1, (200, 200))
+        for i in range(10):
+            screen.blit(items["lettuce"], (20*i, 100))
         character.draw(screen)
         pygame.display.flip()
 
