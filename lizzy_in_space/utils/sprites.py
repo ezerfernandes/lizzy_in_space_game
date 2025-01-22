@@ -2,7 +2,7 @@ import os
 
 import pygame
 
-__all__ = ["SpriteSheet", "get_named_images"]
+__all__ = ["SpriteSheet", "get_named_images", "get_named_sprites"]
 
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -42,5 +42,27 @@ def get_named_images[T](
 
         sub_image = spritesheet.get_image(x, y, item_width, item_height)
         named_sprites[name] = sub_image
+
+    return named_sprites
+
+
+def get_named_sprites[T](
+    spritesheet: SpriteSheet,
+    item_width: int,
+    item_height: int,
+    item_names: list[T],
+    frame_count: int,
+    start_at: int = 0,
+) -> dict[T, list[pygame.Surface]]:
+    named_sprites: dict[T, list[pygame.Surface]] = {}
+
+    for row_index, name in enumerate(item_names):
+        frames = []
+        for col in range(frame_count):
+            x = col * item_width + start_at
+            y = row_index * item_height
+            sub_image = spritesheet.get_image(x, y, item_width, item_height)
+            frames.append(sub_image)
+        named_sprites[name] = frames
 
     return named_sprites

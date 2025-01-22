@@ -23,24 +23,16 @@ pygame.display.set_caption("Space Adventure - Point & Click")
 font = pygame.font.SysFont("arial", 18)
 
 
-HEIGHT_START = {
-    "front": 0,
-    "right": 32,
-    "back": 64,
-    "left": 96,
-}
-
 class Character(BaseModel):
     sprite_sheet: SpriteSheet = Field(default=SpriteSheet("characters/test.png"))
     pos: tuple[int, int]
     direction: Direction = Field(default="front")
     speed: int = Field(default=5)
-    front_frames: list[pygame.Surface] = Field(default_factory=list)
-    back_frames: list[pygame.Surface] = Field(default_factory=list)
-    left_frames: list[pygame.Surface] = Field(default_factory=list)
-    right_frames: list[pygame.Surface] = Field(default_factory=list)
-    frames: list[pygame.Surface] = Field(default_factory=list)
-    current_frame: int = Field(default=0)
+
+    frames_by_direction: dict[str, list[pygame.Surface]] = Field(default_factory=dict)
+    current_frames: list[pygame.Surface] = Field(default_factory=list)
+    current_frame_index: int = Field(default=0)
+
     animation_timer: float = Field(default=0.)
     animation_speed: float = Field(default=200.)
 
@@ -61,83 +53,87 @@ class Character(BaseModel):
     class Config:
         arbitrary_types_allowed = True
 
-    def __init__(self: Self, **kwargs) -> None:
-        if "pos" not in kwargs:
-            kwargs["pos"] = (SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2)
-        super().__init__(**kwargs)
+    def __init__(self: Self, **data) -> None:
+        super().__init__(**data)
+        self._load_frames()
+        # Ensure current frames align with initial direction:
+        self.current_frames = self.frames_by_direction[self.direction]
 
-        self.front_frames: list[pygame.Surface] = [
-            self.sprite_sheet.get_image(
-                16*i,
-                HEIGHT_START["front"],
-                16,
-                32,
-            ) for i in range(4)
-        ]
-        self.back_frames: list[pygame.Surface] = [
-            self.sprite_sheet.get_image(
-                16*i,
-                HEIGHT_START["back"],
-                16,
-                32,
-            ) for i in range(4)
-        ]
-        self.left_frames: list[pygame.Surface] = [
-            self.sprite_sheet.get_image(
-                16*i,
-                HEIGHT_START["left"],
-                16,
-                32,
-            ) for i in range(4)
-        ]
-        self.right_frames: list[pygame.Surface] = [
-            self.sprite_sheet.get_image(
-                16*i,
-                HEIGHT_START["right"],
-                16,
-                32,
-            ) for i in range(4)
-        ]
-        self.frames: list[pygame.Surface] = self.front_frames
+    def _load_frames(self) -> None:
+        """
+        Load frames for each direction from the sprite sheet.
+        Adjust the offsets/width/height to match your sprite sheet.
+        """
+        height_start = {
+            "front": 0,
+            "right": 32,
+            "back": 64,
+            "left": 96,
+        }
+
+        for dir_name, offset_y in height_start.items():
+            # Extract 4 frames horizontally
+            frames = [
+                self.sprite_sheet.get_image(
+                    x=16 * frame_idx,
+                    y=offset_y,
+                    width=16,
+                    height=32
+                )
+                for frame_idx in range(4)
+            ]
+            self.frames_by_direction[dir_name] = frames
+
+    def _move(
+        self, new_direction: Direction, dx: int, dy: int) -> None:
+        """
+        Update direction, position, and current frames.
+        """
+        self.direction = new_direction
+        self.x += dx
+        self.y += dy
+        self.current_frames = self.frames_by_direction[self.direction]
 
     def handle_input(self, keys_pressed: tuple[bool, ...]) -> bool:
+        """
+        Check which movement keys are pressed; update position
+        and direction accordingly.
+        Returns:
+            bool: True if character is moving, else False.
+        """
         moving = False
+        # You could allow diagonal movement by splitting out these conditions
         if keys_pressed[pygame.K_UP] or keys_pressed[pygame.K_w]:
-            self.direction = "back"
-            self.y -= self.speed
+            self._move("back", dx=0, dy=-self.speed)
             moving = True
-            self.frames = self.back_frames
         elif keys_pressed[pygame.K_DOWN] or keys_pressed[pygame.K_s]:
-            self.direction = "front"
-            self.y += self.speed
+            self._move("front", dx=0, dy=self.speed)
             moving = True
-            self.frames = self.front_frames
         elif keys_pressed[pygame.K_LEFT] or keys_pressed[pygame.K_a]:
-            self.direction = "left"
-            self.x -= self.speed
+            self._move("left", dx=-self.speed, dy=0)
             moving = True
-            self.frames = self.left_frames
         elif keys_pressed[pygame.K_RIGHT] or keys_pressed[pygame.K_d]:
-            self.direction = "right"
-            self.x += self.speed
+            self._move("right", dx=self.speed, dy=0)
             moving = True
-            self.frames = self.right_frames
 
         return moving
 
     def update(self, dt: float, moving: bool) -> None:
+        """
+        Update animation frame if moving, otherwise reset to first frame.
+        """
         if moving:
             self.animation_timer += dt
             if self.animation_timer >= self.animation_speed:
                 self.animation_timer = 0
-                self.current_frame = (self.current_frame + 1) % len(self.frames)
+                self.current_frame_index = (self.current_frame_index + 1) % len(self.current_frames)
         else:
-            self.current_frame = 0  # Reset to first frame when not moving
+            self.current_frame_index = 0  # Reset to first frame when not moving
 
     def draw(self, surface: pygame.Surface) -> None:
-        scaled_image = pygame.transform.scale(self.frames[self.current_frame], (32, 64))
-        surface.blit(scaled_image, (self.x, self.y))
-
+        frame = self.current_frames[self.current_frame_index]
+        scaled = pygame.transform.scale(frame, (32, 64))
+        surface.blit(scaled, (self.x, self.y))
 
 
 items = get_evolonline_items()
