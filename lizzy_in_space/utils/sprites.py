@@ -12,9 +12,18 @@ class SpriteSheet:
             os.path.join(project_root, "assets", "images", filename),
         ).convert_alpha()
 
-    def get_image(self, x: int, y: int, width: int, height: int) -> pygame.Surface:
+    def get_image(
+        self,
+        x: int,
+        y: int,
+        width: int,
+        height: int,
+    ) -> pygame.Surface:
         """Extract a single image from a larger spritesheet."""
-        image = pygame.Surface((width, height), pygame.SRCALPHA).convert_alpha()
+        image = pygame.Surface(
+            (width, height),
+            pygame.SRCALPHA,
+        ).convert_alpha()
         image.blit(self.sheet, (0, 0), (x, y, width, height))
         return image
 

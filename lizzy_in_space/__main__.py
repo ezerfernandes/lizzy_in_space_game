@@ -8,6 +8,7 @@ from pydantic import BaseModel, Field
 from lizzy_in_space.models import Direction
 from lizzy_in_space.utils.sprites import SpriteSheet
 from lizzy_in_space.items.evolonline import get_evolonline_items
+from lizzy_in_space.items.overworld import get_overworld_items
 
 pygame.init()
 
@@ -49,6 +50,11 @@ class Character(BaseModel):
     @y.setter
     def y(self, value: int) -> None:
         self.pos = (self.pos[0], value)
+
+    @property
+    def rect(self) -> pygame.Rect:
+        # 32x64 if that’s your scaled draw size
+        return pygame.Rect(self.x, self.y, 32, 64)
 
     class Config:
         arbitrary_types_allowed = True
@@ -94,13 +100,14 @@ class Character(BaseModel):
         self.y += dy
         self.current_frames = self.frames_by_direction[self.direction]
 
-    def handle_input(self, keys_pressed: tuple[bool, ...]) -> bool:
+    def handle_input(self, keys_pressed: tuple[bool, ...], obstacles: list[pygame.Rect]) -> bool:
         """
         Check which movement keys are pressed; update position
         and direction accordingly.
         Returns:
             bool: True if character is moving, else False.
         """
+        old_x, old_y = self.x, self.y
         moving = False
         # You could allow diagonal movement by splitting out these conditions
         if keys_pressed[pygame.K_UP] or keys_pressed[pygame.K_w]:
@@ -115,6 +122,12 @@ class Character(BaseModel):
         elif keys_pressed[pygame.K_RIGHT] or keys_pressed[pygame.K_d]:
             self._move("right", dx=self.speed, dy=0)
             moving = True
+
+        for obstacle in obstacles:
+            if self.rect.colliderect(obstacle):
+                # If collision, revert position
+                self.x, self.y = old_x, old_y
+                break  # No need to check further obstacles once collided
 
         return moving
 
@@ -137,12 +150,16 @@ class Character(BaseModel):
 
 
 items = get_evolonline_items()
+overworld_items = get_overworld_items()
 
 def main() -> None:
     clock = pygame.time.Clock()
     character = Character(pos=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2))
     book1 = items["old book"]
+    wooden_box = overworld_items["wooden box"]
+    wooden_box_rect = wooden_box.get_rect(topleft=(300, 300))
 
+    obstacles = [wooden_box_rect,]
     running = True
     while running:
         dt = clock.tick(FPS)
@@ -151,13 +168,15 @@ def main() -> None:
             if event.type == pygame.QUIT:
                 running = False
         keys_pressed = pygame.key.get_pressed()
-        moving = character.handle_input(keys_pressed)
+        moving = character.handle_input(keys_pressed, obstacles)
         character.update(dt, moving)
         screen.fill((50, 150, 50))
 
         screen.blit(book1, (200, 200))
+        screen.blit(wooden_box, (300, 300))
         for i in range(10):
             screen.blit(items["lettuce"], (20*i, 100))
+
         character.draw(screen)
         pygame.display.flip()
 
