@@ -90,6 +90,17 @@ class Character(BaseModel):
             ]
             self.frames_by_direction[dir_name] = frames
 
+        lizzy_spritesheet = SpriteSheet("characters/lizzy.png")
+        self.frames_by_direction["front"] = [
+            lizzy_spritesheet.get_image(
+                x=16 * frame_idx,
+                y=0,
+                width=16,
+                height=32,
+            )
+            for frame_idx in range(4)
+        ]
+
     def _move(
         self, new_direction: Direction, dx: int, dy: int) -> None:
         """
@@ -159,6 +170,12 @@ def main() -> None:
     wooden_box = overworld_items["wooden box"]
     wooden_box_rect = wooden_box.get_rect(topleft=(300, 300))
 
+    lettuce_list: list[pygame.Rect] = []
+    lettuce_image = items["lettuce"]
+    for i in range(10):
+        rect = lettuce_image.get_rect(topleft=(20 * i, 100))
+        lettuce_list.append(rect)
+
     obstacles = [wooden_box_rect,]
     running = True
     while running:
@@ -174,8 +191,14 @@ def main() -> None:
 
         screen.blit(book1, (200, 200))
         screen.blit(wooden_box, (300, 300))
-        for i in range(10):
-            screen.blit(items["lettuce"], (20*i, 100))
+
+        for rect in lettuce_list[:]:  # copy to avoid changing the list while iterating
+            if character.rect.colliderect(rect):
+                # Character touched this lettuce, so remove it
+                lettuce_list.remove(rect)
+            else:
+                # Draw the lettuce if it's still in the list
+                screen.blit(lettuce_image, rect.topleft)
 
         character.draw(screen)
         pygame.display.flip()
