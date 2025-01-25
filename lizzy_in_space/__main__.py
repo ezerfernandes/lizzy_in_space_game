@@ -25,7 +25,7 @@ font = pygame.font.SysFont("arial", 18)
 
 
 class Character(BaseModel):
-    sprite_sheet: SpriteSheet = Field(default=SpriteSheet("characters/test.png"))
+    sprite_sheet: SpriteSheet = Field(default=SpriteSheet("characters/lizzy2.png"))
     pos: tuple[int, int]
     direction: Direction = Field(default="front")
     speed: int = Field(default=5)
@@ -90,16 +90,6 @@ class Character(BaseModel):
             ]
             self.frames_by_direction[dir_name] = frames
 
-        lizzy_spritesheet = SpriteSheet("characters/lizzy.png")
-        self.frames_by_direction["front"] = [
-            lizzy_spritesheet.get_image(
-                x=16 * frame_idx,
-                y=0,
-                width=16,
-                height=32,
-            )
-            for frame_idx in range(4)
-        ]
 
     def _move(
         self, new_direction: Direction, dx: int, dy: int) -> None:
